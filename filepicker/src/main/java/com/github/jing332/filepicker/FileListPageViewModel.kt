@@ -1,6 +1,7 @@
 package com.github.jing332.filepicker
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf
@@ -27,6 +28,7 @@ class FileListPageViewModel : ViewModel() {
     val listState by lazy { LazyListState() }
     internal val files = mutableStateListOf<FileItem>()
 
+
     fun hasChecked(): Boolean {
         return files.any { it.isChecked }
     }
@@ -48,6 +50,8 @@ class FileListPageViewModel : ViewModel() {
                 item.fileLastModified.value = withContext(Dispatchers.IO) {
                     dateFormatter.format(item.model.time)
                 }
+
+
             }
         }
     }
@@ -71,4 +75,6 @@ data class FileItem(
     val fileCount: MutableIntState = mutableIntStateOf(0),
     val fileSize: MutableState<String> = mutableStateOf("0"),
     val fileLastModified: MutableState<String> = mutableStateOf(""),
+
+    val icon: @Composable() (() -> Unit)? = null,
 )

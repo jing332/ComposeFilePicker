@@ -25,7 +25,7 @@ fun FileNavBar(
     list: List<NavBarItem>,
     onClick: (NavBarItem) -> Unit,
 ) {
-    LazyRow {
+    LazyRow(modifier) {
         itemsIndexed(list) { index, item ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(

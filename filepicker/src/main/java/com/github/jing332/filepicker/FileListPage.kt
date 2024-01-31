@@ -25,10 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.jing332.filepicker.filetype.FileDetector
 import com.github.jing332.filepicker.model.IFileModel
 
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileListPage(
     modifier: Modifier = Modifier,
@@ -43,65 +43,67 @@ fun FileListPage(
         if (vm.files.isEmpty())
             vm.updateFiles(file)
     }
-    Column {
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            state = vm.listState
-        ) {
-            itemsIndexed(vm.files, key = { _, item -> item.key }) { _, item ->
-                Item(
-                    modifier = Modifier
-                        .minimumInteractiveComponentSize()
-                        .animateItemPlacement(),
-                    isChecked = item.isChecked,
-                    icon = {
-                        if (item.isDirectory) {
-                            Icon(
-                                imageVector = Icons.Filled.Folder,
-                                contentDescription = stringResource(R.string.folder)
-                            )
-                        } else {
+    LazyColumn(
+        modifier = modifier,
+        state = vm.listState
+    ) {
+        itemsIndexed(vm.files, key = { _, item -> item.key }) { _, item ->
+            Item(
+                isChecked = item.isChecked,
+                icon = {
+                    if (item.isDirectory) {
+                        Icon(
+                            imageVector = Icons.Filled.Folder,
+                            contentDescription = stringResource(R.string.folder)
+                        )
+                    } else {
+                        val fileType = FileDetector.detect(item.model)
+                        if (fileType == null)
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
                                 contentDescription = stringResource(R.string.file)
                             )
-                        }
-                    },
-                    title = {
-                        Text(text = item.name, style = MaterialTheme.typography.titleMedium)
-                    },
-                    subtitle = {
-                        val text = if (item.isBackType)
-                            stringResource(R.string.back_to_previous_dir)
                         else
-                            "${item.fileLastModified.value} | " +
-                                    if (item.isDirectory) stringResource(
-                                        R.string.item_desc,
-                                        item.fileCount.intValue
-                                    )
-                                    else item.fileSize.value
-                        Row {
-                            Text(
-                                text = text,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    },
-                    onClick = {
-                        if (item.isBackType)
-                            onBack()
-                        else if (isSelectMode && item.isCheckable)
-                            vm.updateModel(item.copy(isChecked = !item.isChecked))
-                        else if (!item.isChecked && item.isDirectory)
-                            onEnter(item.model)
-                    },
-                    onLongClick = {
-                        if (item.isCheckable) {
-                            vm.updateModel(item.copy(isChecked = !item.isChecked))
-                        }
+                            fileType.IconContent()
                     }
-                )
-            }
+                },
+                title = {
+                    Text(text = item.name, style = MaterialTheme.typography.titleMedium)
+                },
+                subtitle = {
+                    val text = if (item.isBackType)
+                        stringResource(R.string.back_to_previous_dir)
+                    else
+                        "${item.fileLastModified.value} | " +
+                                if (item.isDirectory) stringResource(
+                                    R.string.item_desc,
+                                    item.fileCount.intValue
+                                )
+                                else item.fileSize.value
+                    Row {
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                onClick = {
+                    if (item.isBackType)
+                        onBack()
+                    else if (isSelectMode && item.isCheckable)
+                        vm.updateModel(item.copy(isChecked = !item.isChecked))
+                    else if (!item.isChecked && item.isDirectory)
+                        onEnter(item.model)
+                    else
+                        vm.updateModel(item.copy(isChecked = !item.isChecked))
+                },
+                onLongClick = {
+                    if (item.isCheckable) {
+                        vm.updateModel(item.copy(isChecked = !item.isChecked))
+                    }
+                }
+            )
         }
     }
 }
@@ -122,7 +124,8 @@ private fun Item(
         modifier
             .minimumInteractiveComponentSize()
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(Modifier.padding(8.dp)) {
