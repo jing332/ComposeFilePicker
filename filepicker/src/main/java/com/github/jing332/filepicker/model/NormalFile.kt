@@ -4,9 +4,7 @@ import java.io.File
 
 data class NormalFile(
     private val file: File,
-    override val isChecked: Boolean = false
-) :
-    IFileModel() {
+) : IFileModel() {
     override val name: String
         get() = file.name
     override val path: String

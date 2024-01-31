@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back_to_previous_dir">Back to previous directory</string>
+    <string name="folder">Folder</string>
+    <string name="file">File</string>
+    <string name="item_desc">%1$sItems</string>
+</resources>

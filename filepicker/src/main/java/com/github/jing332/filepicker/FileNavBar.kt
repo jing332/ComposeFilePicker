@@ -37,7 +37,7 @@ fun FileNavBar(
 
                 if (index != list.size - 1) {
                     Icon(
-                        modifier = Modifier.padding(horizontal = 4.dp),
+                        modifier = Modifier,
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null
                     )

@@ -8,7 +8,5 @@ abstract class IFileModel {
     open val time: Long = 0
     open val size: Long = 0
 
-    open val isChecked: Boolean = false
-
     open fun files(): List<IFileModel> = emptyList()
 }

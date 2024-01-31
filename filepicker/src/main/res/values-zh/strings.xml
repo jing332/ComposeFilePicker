@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back_to_previous_dir">返回上级目录</string>
+    <string name="folder">文件夹</string>
+    <string name="file">文件</string>
+    <string name="item_desc">%1$s项</string>
+</resources>

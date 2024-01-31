@@ -18,19 +18,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.jing332.filepicker.model.BackFileModel
 import com.github.jing332.filepicker.model.IFileModel
-import com.github.jing332.filepicker.model.NormalFile
-import com.github.jing332.filepicker.utils.StringUtils.sizeToReadable
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileListPage(
     modifier: Modifier = Modifier,
@@ -39,6 +37,7 @@ fun FileListPage(
     onEnter: (IFileModel) -> Unit
 ) {
     val vm: FileListPageViewModel = viewModel(key = file.name + "_" + file.path)
+    val isSelectMode by rememberUpdatedState(newValue = vm.hasChecked())
 
     LaunchedEffect(key1 = file) {
         if (vm.files.isEmpty())
@@ -49,57 +48,56 @@ fun FileListPage(
             modifier = Modifier.weight(1f),
             state = vm.listState
         ) {
-            itemsIndexed(vm.files) { index, file ->
+            itemsIndexed(vm.files, key = { _, item -> item.key }) { _, item ->
                 Item(
-                    modifier = Modifier,
-                    isChecked = file.isChecked,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .animateItemPlacement(),
+                    isChecked = item.isChecked,
                     icon = {
-                        if (file.isDirectory) {
+                        if (item.isDirectory) {
                             Icon(
                                 imageVector = Icons.Filled.Folder,
-                                contentDescription = "folder"
+                                contentDescription = stringResource(R.string.folder)
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
-                                contentDescription = "file"
+                                contentDescription = stringResource(R.string.file)
                             )
                         }
                     },
                     title = {
-                        Text(text = file.name, style = MaterialTheme.typography.titleMedium)
+                        Text(text = item.name, style = MaterialTheme.typography.titleMedium)
                     },
                     subtitle = {
-//                        val date = remember(file.time) {
-//                            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-//                                .format(file.time)
-//                        }
-//                        val text = "$date | " +
-//                                if (file.isDirectory) "${file.fileCount}项"
-//                                else file.size.sizeToReadable()
-//                        Row {
-//                            Text(
-//                                text = text,
-//                                style = MaterialTheme.typography.bodyMedium
-//                            )
-//                        }
-                    },
-                    onClick = {
-                        when (file) {
-                            is BackFileModel -> onBack()
-
-                            is NormalFile -> {
-                                if (!file.isChecked && file.isDirectory)
-                                    onEnter(file)
-                                else {
-                                    vm.updateModel(file, file.copy(isChecked = !file.isChecked))
-                                }
-                            }
+                        val text = if (item.isBackType)
+                            stringResource(R.string.back_to_previous_dir)
+                        else
+                            "${item.fileLastModified.value} | " +
+                                    if (item.isDirectory) stringResource(
+                                        R.string.item_desc,
+                                        item.fileCount.intValue
+                                    )
+                                    else item.fileSize.value
+                        Row {
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     },
+                    onClick = {
+                        if (item.isBackType)
+                            onBack()
+                        else if (isSelectMode && item.isCheckable)
+                            vm.updateModel(item.copy(isChecked = !item.isChecked))
+                        else if (!item.isChecked && item.isDirectory)
+                            onEnter(item.model)
+                    },
                     onLongClick = {
-                        if (file is NormalFile) {
-                            vm.updateModel(file, file.copy(isChecked = !file.isChecked))
+                        if (item.isCheckable) {
+                            vm.updateModel(item.copy(isChecked = !item.isChecked))
                         }
                     }
                 )
