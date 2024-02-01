@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.jing332.filepicker.Contants.DEFAULT_ROOT_PATH
 import com.github.jing332.filepicker.model.BackFileModel
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.utils.StringUtils.sizeToReadable
@@ -30,25 +29,45 @@ class FileListPageViewModel : ViewModel() {
 
 
     fun hasChecked(): Boolean {
-        return files.any { it.isChecked }
+        return files.any { it.isChecked.value }
     }
 
-    private fun IFileModel.filesSorted(): List<IFileModel> {
-        return this.files().sortedWith(
+    private fun IFileModel.filesSortAndFilter(
+        sort: SortConfig,
+        filter: FileFilter
+    ): List<IFileModel> {
+        return this.files().filter { filter.accept(it) }.sortedWith(
             compareBy(
                 { !it.isDirectory },
-                { it.name.lowercase(Locale.getDefault()) }
+                {
+                    val str = when (sort.sortBy) {
+                        SortType.NAME -> it.name
+                        SortType.SIZE -> it.size.toString()
+                        SortType.DATE -> it.time.toString()
+                        SortType.TYPE -> it.name.split(".").lastOrNull() ?: ""
+                        else -> it.name
+                    }
+                    str.lowercase(Locale.getDefault())
+                }
             )
-        )
+        ).run {
+            if (sort.reverse) reversed() else this
+        }
     }
 
-    fun updateFiles(file: IFileModel, rootPath:String) {
+    fun updateFiles(file: IFileModel, config: FilePickerConfig) {
         files.clear()
-        if (file.path != rootPath)
-            files += FileItem(BackFileModel(), isCheckable = false, isBackType = true)
+        if (file.path != config.rootPath)
+            files += FileItem(BackFileModel(), isBackType = true).apply {
+                isCheckable.value = false
+            }
 
         val cost = measureTimeMillis {
-            files += file.filesSorted().map { FileItem(it) }
+            files += file.filesSortAndFilter(config.sortConfig, config.fileFilter).map {
+                FileItem(it).apply {
+                    isCheckable.value = config.fileSelector.select(model)
+                }
+            }
         }
         println("load files: $cost ms")
 
@@ -71,6 +90,14 @@ class FileListPageViewModel : ViewModel() {
         if (index != -1)
             files[index] = item
     }
+
+    fun selectedCount(): Int {
+        return files.count { it.isChecked.value }
+    }
+
+    fun cancelSelect() {
+        files.forEach { it.isChecked.value = false }
+    }
 }
 
 data class FileItem(
@@ -78,9 +105,10 @@ data class FileItem(
     val key: String = model.path,
     val name: String = model.name,
     val isDirectory: Boolean = model.isDirectory,
-    val isChecked: Boolean = false,
-    val isCheckable: Boolean = true,
     val isBackType: Boolean = false,
+
+    val isChecked: MutableState<Boolean> = mutableStateOf(false),
+    val isCheckable: MutableState<Boolean> = mutableStateOf(true),
 
     val fileCount: MutableIntState = mutableIntStateOf(0),
     val fileSize: MutableState<String> = mutableStateOf("0"),

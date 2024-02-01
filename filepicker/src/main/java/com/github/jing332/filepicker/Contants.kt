@@ -2,7 +2,6 @@ package com.github.jing332.filepicker
 
 import androidx.compose.runtime.compositionLocalOf
 import androidx.navigation.NavHostController
-import com.github.jing332.filepicker.utils.FilePickerConfig
 
 val LocalNavController = compositionLocalOf<NavHostController> { error("No nav controller") }
 val LocalFilePickerConfig = compositionLocalOf<FilePickerConfig> { error("No config") }

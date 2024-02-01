@@ -2,7 +2,7 @@ package com.github.jing332.filepicker.filetype
 
 import com.github.jing332.filepicker.model.IFileModel
 
-object FileDetector {
+class FileDetector {
     val allDefaultFileTypes by lazy {
         setOf(
             AudioType,
