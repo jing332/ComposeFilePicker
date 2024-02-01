@@ -20,12 +20,23 @@ android {
         }
     }
 
+    signingConfigs {
+        release{
+            storeFile file("filepicker.jks")
+            storePassword "filepicker"
+            keyAlias "filepicker"
+            keyPassword "filepicker"
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
+            signingConfig signingConfigs.release
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
