@@ -19,6 +19,9 @@ object FileDetector {
         mutableSetOf<IFileType>().apply { addAll(allDefaultFileTypes) }
     }
 
+    fun clearFileType() {
+        fileTypes.clear()
+    }
 
     fun addFileType(fileType: IFileType) {
         fileTypes.add(fileType)

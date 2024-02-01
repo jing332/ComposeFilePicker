@@ -16,6 +16,7 @@ import com.github.jing332.filepicker.utils.StringUtils.sizeToReadable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.system.measureTimeMillis
@@ -33,15 +34,25 @@ class FileListPageViewModel : ViewModel() {
         return files.any { it.isChecked }
     }
 
+    private fun IFileModel.filesSorted(): List<IFileModel> {
+        return this.files().sortedWith(
+            compareBy(
+                { !it.isDirectory },
+                { it.name.lowercase(Locale.getDefault()) }
+            )
+        )
+    }
+
     fun updateFiles(file: IFileModel) {
         files.clear()
         if (file.path != DEFAULT_ROOT_URI)
             files += FileItem(BackFileModel(), isCheckable = false, isBackType = true)
 
         val cost = measureTimeMillis {
-            files += file.files().map { FileItem(it) }
+            files += file.filesSorted().map { FileItem(it) }
         }
         println("load files: $cost ms")
+
         viewModelScope.launch(Dispatchers.Main) {
             for (item in files) {
                 item.fileCount.intValue = withContext(Dispatchers.IO) { item.model.fileCount }
