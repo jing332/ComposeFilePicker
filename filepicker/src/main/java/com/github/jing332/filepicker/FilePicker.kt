@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,8 +27,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.github.jing332.filepicker.Contants.ARG_URI
+import com.github.jing332.filepicker.Contants.ARG_PATH
 import com.github.jing332.filepicker.Contants.ROUTE_PAGE
+import com.github.jing332.filepicker.listpage.FileListPage
+import com.github.jing332.filepicker.listpage.FileListPageState
+import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.model.NormalFile
 import com.github.jing332.filepicker.utils.navigate
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -75,7 +77,11 @@ private fun PermissionGrant() {
 
 
 @Composable
-fun FilePicker(modifier: Modifier = Modifier, config: FilePickerConfig = FilePickerConfig()) {
+fun FilePicker(
+    modifier: Modifier = Modifier,
+    config: FilePickerConfig = FilePickerConfig(),
+    onConfirmSelect: (List<IFileModel>) -> Unit
+) {
     val vm: FilePickerViewModel = viewModel()
     val navController = rememberNavController()
     val navBarItems = remember { mutableStateListOf<NavBarItem>() }
@@ -85,10 +91,17 @@ fun FilePicker(modifier: Modifier = Modifier, config: FilePickerConfig = FilePic
         navController.popBackStack()
     }
 
+    fun navigateNewPath(path: String) {
+        vm.fileListStates[path] = FileListPageState()
+        navController.navigate(ROUTE_PAGE, Bundle().apply {
+            putString(ARG_PATH, path)
+        })
+    }
+
     fun update() {
         navController.popBackStack()
         navController.navigate(ROUTE_PAGE, Bundle().apply {
-            putString(ARG_URI, config.rootPath)
+            putString(ARG_PATH, config.rootPath)
         })
     }
 
@@ -98,9 +111,10 @@ fun FilePicker(modifier: Modifier = Modifier, config: FilePickerConfig = FilePic
         LocalNavController provides navController,
         LocalFilePickerConfig provides config,
     ) {
-        var selectedCount by remember { mutableIntStateOf(0) }
         Column(modifier) {
             var sortConfig by remember { mutableStateOf(config.sortConfig) }
+            fun getState() = vm.fileListStates[vm.currentPath]
+            val selectedCount = getState()?.items?.count { it.isChecked.value } ?: 0
             FilePickerToolbar(
                 modifier = Modifier.fillMaxWidth(),
                 title = navBarItems.lastOrNull()?.name ?: "",
@@ -111,8 +125,13 @@ fun FilePicker(modifier: Modifier = Modifier, config: FilePickerConfig = FilePic
                     update()
                 },
                 selectedCount = selectedCount,
-                onCancelSelect = { selectedCount = 0},
-                onConfirmSelect = {  }
+                onCancelSelect = {
+                    getState()?.uncheckAll()
+                },
+                onConfirmSelect = {
+                    onConfirmSelect(getState()?.items?.filter { it.isChecked.value }
+                        ?.map { it.model } ?: emptyList())
+                }
             )
 
             FileNavBar(
@@ -121,7 +140,7 @@ fun FilePicker(modifier: Modifier = Modifier, config: FilePickerConfig = FilePic
                 onClick = { item ->
                     while (true) {
                         val uri =
-                            navController.currentBackStackEntry?.arguments?.getString(ARG_URI)
+                            navController.currentBackStackEntry?.arguments?.getString(ARG_PATH)
                                 ?: break
                         if (uri == item.path) break
                         else popBack()
@@ -134,32 +153,36 @@ fun FilePicker(modifier: Modifier = Modifier, config: FilePickerConfig = FilePic
                 startDestination = ROUTE_PAGE
             ) {
                 composable(ROUTE_PAGE) { entry ->
-                    LaunchedEffect(key1 = Unit) {
-
+                    navController.enableOnBackPressed(false)
+                    val path = entry.arguments?.getString(ARG_PATH) ?: config.rootPath
+                    val fileListState = vm.fileListStates[path] ?: FileListPageState().run {
+                        vm.fileListStates[path] = this
+                        this
                     }
 
-                    navController.enableOnBackPressed(false)
-                    val uri = entry.arguments?.getString(ARG_URI) ?: config.rootPath
-                    BackHandler(uri != config.rootPath) {
+                    LaunchedEffect(key1 = Unit) {
+                        vm.currentPath = path
+                    }
+                    BackHandler(path != config.rootPath) {
                         popBack()
                     }
+                    BackHandler(selectedCount > 0) {
+                        getState()?.uncheckAll()
+                    }
 
-                    val file = File(uri)
+                    val file = File(path)
                     if (navBarItems.isEmpty())
                         navBarItems.add(NavBarItem(name = file.name, path = file.path))
-
                     FileListPage(
                         file = NormalFile(file),
+                        state = fileListState,
                         onBack = { popBack() },
                         onEnter = { enterFile ->
                             navBarItems += NavBarItem(name = enterFile.name, path = enterFile.path)
-                            navController.navigate(ROUTE_PAGE, Bundle().apply {
-                                putString(ARG_URI, enterFile.path)
-                            })
+                            navigateNewPath(enterFile.path)
                         },
-                        selectedCount = selectedCount,
-                        onSelectedCountChange = { selectedCount = it }
-                    )
+
+                        )
 
                 }
             }

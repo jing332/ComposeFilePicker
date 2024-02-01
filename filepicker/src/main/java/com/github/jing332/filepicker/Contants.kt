@@ -8,7 +8,7 @@ val LocalFilePickerConfig = compositionLocalOf<FilePickerConfig> { error("No con
 
 object Contants {
     const val ROUTE_PAGE = "page"
-    const val ARG_URI = "uri"
+    const val ARG_PATH = "uri"
     const val DEFAULT_ROOT_PATH = "/storage/emulated/0"
 
 }

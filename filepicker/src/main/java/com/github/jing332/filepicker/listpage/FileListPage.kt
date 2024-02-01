@@ -1,4 +1,4 @@
-package com.github.jing332.filepicker
+package com.github.jing332.filepicker.listpage
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.jing332.filepicker.LocalFilePickerConfig
+import com.github.jing332.filepicker.R
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.utils.performLongPress
 
@@ -34,20 +36,21 @@ import com.github.jing332.filepicker.utils.performLongPress
 @Composable
 fun FileListPage(
     modifier: Modifier = Modifier,
+    state: FileListPageState = FileListPageState(),
     file: IFileModel,
     onBack: () -> Unit,
     onEnter: (IFileModel) -> Unit,
-
-    selectedCount: Int,
-    onSelectedCountChange: (Int) -> Unit
+    vm: FileListPageViewModel = viewModel(key = file.name + "_" + file.path)
 ) {
-    val vm: FileListPageViewModel = viewModel(key = file.name + "_" + file.path)
-    val hasChecked by rememberUpdatedState(newValue = vm.hasChecked())
+    val hasChecked by rememberUpdatedState(newValue = state.hasChecked())
     val config = LocalFilePickerConfig.current
 
     val view = LocalView.current
+    LaunchedEffect(key1 = state) {
+        vm.state = state
+    }
     LaunchedEffect(key1 = file) {
-        if (vm.files.isEmpty())
+        if (state.items.isEmpty())
             vm.updateFiles(file, config)
     }
 
@@ -55,24 +58,26 @@ fun FileListPage(
         if (hasChecked) view.performLongPress()
     }
 
-    LaunchedEffect(key1 = selectedCount) {
-        if (selectedCount == 0)
-            vm.cancelSelect()
-    }
 
     LazyColumn(
         modifier = modifier,
-        state = vm.listState
+        state = state.listState
     ) {
-        itemsIndexed(vm.files, key = { _, item -> item.key }) { _, item ->
+        itemsIndexed(state.items, key = { _, item -> item.key }) { _, item ->
+            fun isCheckable(): Boolean {
+                if (item.isBackType) return false
+                val checkedList = state.items.filter { it.isChecked.value }.map { it.model }
+                return config.fileSelector.select(checkedList, item.model)
+            }
+
             fun check(checked: Boolean = !item.isChecked.value) {
-                item.isChecked.value = checked
-                onSelectedCountChange(vm.selectedCount())
+                if (isCheckable())
+                    state.check(item, checked)
             }
 
             Item(
                 isChecked = item.isChecked.value,
-                isCheckable = item.isCheckable.value,
+//                isCheckable = item.isCheckable.value,
                 icon = {
                     if (item.isDirectory) {
                         Icon(
@@ -111,26 +116,24 @@ fun FileListPage(
                         )
                     }
                 },
-                onCheckedChange = {
-                    item.isChecked.value = it
+                onCheckedChange = { checked ->
+                    if (checked) {
+                        if (isCheckable())
+                            check(true)
+                    } else
+                        item.isChecked.value = false
                 },
                 onClick = {
                     if (item.isBackType)
                         onBack()
                     else if (!hasChecked && !item.isChecked.value && item.isDirectory)
                         onEnter(item.model)
-                    else if (config.fileSelector.select(item.model))
-                        check()
-                    else
+                    else if (isCheckable())
                         check()
                 },
                 onLongClick = {
-                    if (item.isBackType)
-                        onBack()
-                    else if (!config.fileSelector.select(item.model)) return@Item
-                    else if (item.isCheckable.value) {
-                        check()
-                    }
+                    if (item.isBackType) onBack()
+                    else if (isCheckable()) check()
                 }
             )
         }
@@ -144,7 +147,7 @@ private fun Item(
     modifier: Modifier = Modifier,
     isChecked: Boolean = false,
     onCheckedChange: (Boolean) -> Unit,
-    isCheckable: Boolean = false,
+    isCheckable: Boolean = true,
     icon: @Composable () -> Unit,
     title: @Composable () -> Unit,
     subtitle: @Composable () -> Unit,

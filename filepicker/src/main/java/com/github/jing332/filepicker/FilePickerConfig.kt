@@ -10,7 +10,7 @@ fun interface FileFilter {
 }
 
 fun interface FileSelector {
-    fun select(file: IFileModel): Boolean
+    fun select(checkedList: List<IFileModel>, check: IFileModel): Boolean
 }
 
 data class FilePickerConfig(
@@ -18,7 +18,7 @@ data class FilePickerConfig(
 
     val fileDetector: FileDetector = FileDetector(),
     val fileFilter: FileFilter = FileFilter { true },
-    val fileSelector: FileSelector = FileSelector { true },
+    val fileSelector: FileSelector = FileSelector { _, _ -> true },
 
     var sortConfig: SortConfig = SortConfig(),
 ) {

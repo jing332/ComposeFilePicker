@@ -1,14 +1,12 @@
-package com.github.jing332.filepicker
+package com.github.jing332.filepicker.listpage
 
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableIntState
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.jing332.filepicker.FileFilter
+import com.github.jing332.filepicker.FilePickerConfig
+import com.github.jing332.filepicker.SortConfig
+import com.github.jing332.filepicker.SortType
 import com.github.jing332.filepicker.model.BackFileModel
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.utils.StringUtils.sizeToReadable
@@ -24,13 +22,10 @@ class FileListPageViewModel : ViewModel() {
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     }
 
-    val listState by lazy { LazyListState() }
-    internal val files = mutableStateListOf<FileItem>()
+    internal var state: FileListPageState? = null
+    internal val files: SnapshotStateList<FileItem>
+        get() = state?.items!!
 
-
-    fun hasChecked(): Boolean {
-        return files.any { it.isChecked.value }
-    }
 
     private fun IFileModel.filesSortAndFilter(
         sort: SortConfig,
@@ -64,9 +59,7 @@ class FileListPageViewModel : ViewModel() {
 
         val cost = measureTimeMillis {
             files += file.filesSortAndFilter(config.sortConfig, config.fileFilter).map {
-                FileItem(it).apply {
-                    isCheckable.value = config.fileSelector.select(model)
-                }
+                FileItem(it)
             }
         }
         println("load files: $cost ms")
@@ -84,35 +77,4 @@ class FileListPageViewModel : ViewModel() {
             }
         }
     }
-
-    fun updateModel(item: FileItem) {
-        val index = files.indexOfFirst { it.key == item.key }
-        if (index != -1)
-            files[index] = item
-    }
-
-    fun selectedCount(): Int {
-        return files.count { it.isChecked.value }
-    }
-
-    fun cancelSelect() {
-        files.forEach { it.isChecked.value = false }
-    }
 }
-
-data class FileItem(
-    val model: IFileModel,
-    val key: String = model.path,
-    val name: String = model.name,
-    val isDirectory: Boolean = model.isDirectory,
-    val isBackType: Boolean = false,
-
-    val isChecked: MutableState<Boolean> = mutableStateOf(false),
-    val isCheckable: MutableState<Boolean> = mutableStateOf(true),
-
-    val fileCount: MutableIntState = mutableIntStateOf(0),
-    val fileSize: MutableState<String> = mutableStateOf("0"),
-    val fileLastModified: MutableState<String> = mutableStateOf(""),
-
-    val icon: @Composable() (() -> Unit)? = null,
-)
