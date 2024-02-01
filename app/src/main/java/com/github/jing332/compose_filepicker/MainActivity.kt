@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.github.jing332.compose_filepicker.ui.theme.ComposefilepickerTheme
 import com.github.jing332.filepicker.FilePicker
 import com.github.jing332.filepicker.FilePickerState
+import com.github.jing332.filepicker.utils.FilePickerConfig
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,7 +25,7 @@ class MainActivity : ComponentActivity() {
             ComposefilepickerTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(Modifier.padding(innerPadding)) {
-                        FilePicker(state = FilePickerState())
+                        FilePicker(config = FilePickerConfig())
                     }
                 }
             }

@@ -38,10 +38,11 @@ fun FileListPage(
 ) {
     val vm: FileListPageViewModel = viewModel(key = file.name + "_" + file.path)
     val isSelectMode by rememberUpdatedState(newValue = vm.hasChecked())
+    val config = LocalFilePickerConfig.current
 
     LaunchedEffect(key1 = file) {
         if (vm.files.isEmpty())
-            vm.updateFiles(file)
+            vm.updateFiles(file, config.rootPath)
     }
     LazyColumn(
         modifier = modifier,

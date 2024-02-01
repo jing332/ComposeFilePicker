@@ -24,10 +24,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.github.jing332.filepicker.Contants.ARG_URI
-import com.github.jing332.filepicker.Contants.DEFAULT_ROOT_URI
 import com.github.jing332.filepicker.Contants.ROUTE_PAGE
 import com.github.jing332.filepicker.model.NormalFile
 import com.github.jing332.filepicker.utils.Extensions.navigate
+import com.github.jing332.filepicker.utils.FilePickerConfig
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
@@ -71,7 +71,7 @@ private fun PermissionGrant() {
 
 
 @Composable
-fun FilePicker(modifier: Modifier = Modifier, state: FilePickerState) {
+fun FilePicker(modifier: Modifier = Modifier, config: FilePickerConfig = FilePickerConfig()) {
     val vm: FilePickerViewModel = viewModel()
     val navController = rememberNavController()
     val navBarItems = remember { mutableStateListOf<NavBarItem>() }
@@ -84,6 +84,7 @@ fun FilePicker(modifier: Modifier = Modifier, state: FilePickerState) {
 
     CompositionLocalProvider(
         LocalNavController provides navController,
+        LocalFilePickerConfig provides config,
     ) {
         Column(modifier) {
             FileNavBar(list = navBarItems, modifier = Modifier.padding(8.dp), onClick = { item ->
@@ -103,11 +104,11 @@ fun FilePicker(modifier: Modifier = Modifier, state: FilePickerState) {
             ) {
                 composable(ROUTE_PAGE) {
                     navController.enableOnBackPressed(false)
-                    BackHandler(true) {
+                    val uri = it.arguments?.getString(ARG_URI) ?: config.rootPath
+                    BackHandler(uri != config.rootPath) {
                         popBack()
                     }
 
-                    val uri = it.arguments?.getString(ARG_URI) ?: DEFAULT_ROOT_URI
                     val file = File(uri)
                     if (navBarItems.isEmpty())
                         navBarItems += NavBarItem(name = file.name, path = file.path)

@@ -9,14 +9,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.jing332.filepicker.Contants.DEFAULT_ROOT_URI
+import com.github.jing332.filepicker.Contants.DEFAULT_ROOT_PATH
 import com.github.jing332.filepicker.model.BackFileModel
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.utils.StringUtils.sizeToReadable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.system.measureTimeMillis
@@ -43,9 +42,9 @@ class FileListPageViewModel : ViewModel() {
         )
     }
 
-    fun updateFiles(file: IFileModel) {
+    fun updateFiles(file: IFileModel, rootPath:String) {
         files.clear()
-        if (file.path != DEFAULT_ROOT_URI)
+        if (file.path != rootPath)
             files += FileItem(BackFileModel(), isCheckable = false, isBackType = true)
 
         val cost = measureTimeMillis {
