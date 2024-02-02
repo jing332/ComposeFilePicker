@@ -25,8 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.jing332.filepicker.FilePickerConfig
 import com.github.jing332.filepicker.LocalFilePickerConfig
 import com.github.jing332.filepicker.R
 import com.github.jing332.filepicker.model.IFileModel
@@ -36,48 +40,37 @@ import com.github.jing332.filepicker.utils.performLongPress
 @Composable
 fun FileListPage(
     modifier: Modifier = Modifier,
+    config: FilePickerConfig = FilePickerConfig(),
     state: FileListPageState = FileListPageState(),
     file: IFileModel,
     onBack: () -> Unit,
     onEnter: (IFileModel) -> Unit,
-    vm: FileListPageViewModel = viewModel(key = file.name + "_" + file.path)
+//    vm: FileListPageViewModel = viewModel(key = file.name + "_" + file.path)
 ) {
     val hasChecked by rememberUpdatedState(newValue = state.hasChecked())
     val config = LocalFilePickerConfig.current
 
     val view = LocalView.current
-    LaunchedEffect(key1 = state) {
-        vm.state = state
+    LaunchedEffect(key1 = config) {
+        state.config = config
     }
     LaunchedEffect(key1 = file) {
         if (state.items.isEmpty())
-            vm.updateFiles(file, config)
+            state.updateFiles(file)
     }
 
     LaunchedEffect(key1 = hasChecked) {
         if (hasChecked) view.performLongPress()
     }
 
-
     LazyColumn(
         modifier = modifier,
         state = state.listState
     ) {
         itemsIndexed(state.items, key = { _, item -> item.key }) { _, item ->
-            fun isCheckable(): Boolean {
-                if (item.isBackType) return false
-                val checkedList = state.items.filter { it.isChecked.value }.map { it.model }
-                return config.fileSelector.select(checkedList, item.model)
-            }
-
-            fun check(checked: Boolean = !item.isChecked.value) {
-                if (isCheckable())
-                    state.check(item, checked)
-            }
-
             Item(
                 isChecked = item.isChecked.value,
-//                isCheckable = item.isCheckable.value,
+                isCheckable = if (item.isBackType) false else item.isCheckable.value,
                 icon = {
                     if (item.isDirectory) {
                         Icon(
@@ -116,24 +109,19 @@ fun FileListPage(
                         )
                     }
                 },
-                onCheckedChange = { checked ->
-                    if (checked) {
-                        if (isCheckable())
-                            check(true)
-                    } else
-                        item.isChecked.value = false
+                onCheckedChange = { _ ->
+                    state.selector(item)
                 },
                 onClick = {
                     if (item.isBackType)
                         onBack()
                     else if (!hasChecked && !item.isChecked.value && item.isDirectory)
                         onEnter(item.model)
-                    else if (isCheckable())
-                        check()
+                    else state.selector(item)
                 },
                 onLongClick = {
                     if (item.isBackType) onBack()
-                    else if (isCheckable()) check()
+                    else state.selector(item)
                 }
             )
         }
@@ -158,8 +146,19 @@ private fun Item(
         modifier
             .minimumInteractiveComponentSize()
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(vertical = 4.dp),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = if (isCheckable) onLongClick else null,
+                onLongClickLabel = if (isCheckable) {
+                    if (isChecked) "Uncheck" else "Check"
+                } else
+                    null
+            )
+            .padding(vertical = 4.dp)
+            .semantics(mergeDescendants = true) {
+                role = Role.Checkbox
+                if (isCheckable) selected = isChecked
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(Modifier.padding(8.dp)) {

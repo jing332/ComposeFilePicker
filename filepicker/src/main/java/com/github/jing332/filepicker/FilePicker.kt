@@ -176,6 +176,7 @@ fun FilePicker(
                     FileListPage(
                         file = NormalFile(file),
                         state = fileListState,
+                        config = config,
                         onBack = { popBack() },
                         onEnter = { enterFile ->
                             navBarItems += NavBarItem(name = enterFile.name, path = enterFile.path)

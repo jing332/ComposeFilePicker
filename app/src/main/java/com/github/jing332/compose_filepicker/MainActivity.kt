@@ -1,7 +1,6 @@
 package com.github.jing332.compose_filepicker
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -51,19 +50,7 @@ class MainActivity : ComponentActivity() {
                         FilePicker(
                             config = FilePickerConfig(
 //                            fileFilter = { it.name.startsWith("a", ignoreCase = true) },
-
-                                // Only checkable name prefix is 'A' files
-                                fileSelector = { _, checked ->
-                                    checked.name.startsWith("A").also {
-                                        if (!it) {
-                                            Toast.makeText(
-                                                this@MainActivity,
-                                                "Only items starting with 'A' can be checked",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
+//                                fileSelector =
                             ),
                             onConfirmSelect = {
                                 showSelectedList = it

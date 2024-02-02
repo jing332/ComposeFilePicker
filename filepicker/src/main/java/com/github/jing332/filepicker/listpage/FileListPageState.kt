@@ -8,7 +8,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.lifecycle.viewModelScope
 import com.github.jing332.filepicker.FileFilter
 import com.github.jing332.filepicker.FilePickerConfig
 import com.github.jing332.filepicker.SortConfig
@@ -17,8 +16,10 @@ import com.github.jing332.filepicker.model.BackFileModel
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.utils.StringUtils.sizeToReadable
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.system.measureTimeMillis
 
@@ -27,19 +28,39 @@ fun rememberFileListPageState() = remember {
     FileListPageState()
 }
 
-class FileListPageState {
+class FileListPageState() {
+    companion object {
+        private val dateFormatter by lazy {
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        }
+    }
+
     val listState by lazy { LazyListState() }
 
+    internal var config: FilePickerConfig? = null
     internal val items = mutableStateListOf<FileItem>()
 
-    val selectedCount: MutableIntState = mutableIntStateOf(0)
-
-    internal fun updateSelectedCount() {
-        selectedCount.intValue = items.count { it.isChecked.value }
-    }
+    internal fun models() = items.map { it.model }
+    internal fun findCheckedItems() = items.filter { it.isChecked.value }
 
     internal fun check(item: FileItem, checked: Boolean = true) {
         item.isChecked.value = checked
+    }
+
+    internal fun selector(item: FileItem): Boolean {
+        if (item.isBackType) return false
+
+        if (item.isChecked.value) {
+            item.isChecked.value = false
+            return false
+        }
+
+        val list = config!!.fileSelector.select(findCheckedItems().map { it.model }, item.model)
+        for (i in items) {
+            i.isChecked.value = list.find { it == i.model } != null
+        }
+
+        return list.find { it == item.model } != null
     }
 
     fun checkAll() {
@@ -78,6 +99,34 @@ class FileListPageState {
             )
         ).run {
             if (sort.reverse) reversed() else this
+        }
+    }
+
+    internal suspend fun updateFiles(file: IFileModel) = coroutineScope {
+        items.clear()
+        if (file.path != config!!.rootPath)
+            items += FileItem(BackFileModel(), isBackType = true).apply {
+                isCheckable.value = false
+            }
+
+        val cost = measureTimeMillis {
+            items += file.filesSortAndFilter(config!!.sortConfig, config!!.fileFilter).map {
+                FileItem(it)
+            }
+        }
+        println("load files: $cost ms")
+
+        launch(Dispatchers.Main) {
+            for (item in items) {
+                item.fileCount.intValue = withContext(Dispatchers.IO) { item.model.fileCount }
+                item.fileSize.value =
+                    withContext(Dispatchers.IO) { item.model.size.sizeToReadable() }
+                item.fileLastModified.value = withContext(Dispatchers.IO) {
+                    dateFormatter.format(item.model.time)
+                }
+
+                item.isCheckable.value = config!!.fileSelector.isCheckable(item.model)
+            }
         }
     }
 }
