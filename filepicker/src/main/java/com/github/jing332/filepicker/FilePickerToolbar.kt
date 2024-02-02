@@ -2,12 +2,16 @@ package com.github.jing332.filepicker
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -26,6 +30,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selectableGroup
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 
@@ -55,11 +64,14 @@ fun FilePickerToolbar(
     sortConfig: SortConfig,
     onSortConfigChange: (SortConfig) -> Unit,
 
+    viewType: Int,
+    onSwitchViewType: (Int) -> Unit,
+
     selectedCount: Int,
     onCancelSelect: () -> Unit,
     onConfirmSelect: () -> Unit,
 ) {
-    Crossfade(targetState = selectedCount > 0) {
+    Crossfade(targetState = selectedCount > 0, label = "") {
         if (it)
             BasicToolbar(title = { Text(text = "$selectedCount") }, modifier = modifier,
                 navigationIcon = {
@@ -77,9 +89,6 @@ fun FilePickerToolbar(
                 })
         else
             BasicToolbar(modifier = modifier, title = { Text(title) }, actions = {
-//        IconButton(onClick = { /*TODO*/ }) {
-//            Icon(Icons.Default.Search, stringResource(R.string.search))
-//        }
                 var showSortConfigDialog by remember { mutableStateOf(false) }
                 if (showSortConfigDialog)
                     SortSettingsDialog(
@@ -90,19 +99,71 @@ fun FilePickerToolbar(
                 var showOptions by rememberSaveable { mutableStateOf(false) }
                 IconButton(onClick = { showOptions = true }) {
                     Icon(Icons.Default.MoreVert, stringResource(R.string.more_options))
-                    if (showOptions)
-                        DropdownMenu(
-                            expanded = showOptions,
-                            onDismissRequest = { showOptions = false }) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(id = R.string.sort_by)) },
-                                onClick = {
-                                    showOptions = false
-                                    showSortConfigDialog = true
+                    DropdownMenu(
+                        expanded = showOptions,
+                        onDismissRequest = { showOptions = false }) {
+                        RadioDropdownMenuItem(
+                            text = {
+                                Text(stringResource(id = R.string.list))
+                            },
+                            checked = viewType == ViewType.LIST,
+                            onClick = {
+                                showOptions = false
+                                onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
+                            }
+                        )
+                        RadioDropdownMenuItem(
+                            text = {
+                                Text(stringResource(id = R.string.grid))
+                            },
+                            checked = viewType == ViewType.GRID,
+                            onClick = {
+                                showOptions = false
+                                onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
+                            }
+                        )
+
+                        Divider(Modifier.fillMaxWidth())
+                        DropdownMenuItem(
+                            text = {
+                                Row {
+                                    Icon(Icons.AutoMirrored.Filled.Sort, null)
+                                    Text(stringResource(id = R.string.sort_by))
                                 }
-                            )
-                        }
+                            },
+                            onClick = {
+                                showOptions = false
+                                showSortConfigDialog = true
+                            }
+                        )
+                    }
                 }
             })
     }
+}
+
+@Composable
+internal fun RadioDropdownMenuItem(
+    modifier: Modifier = Modifier,
+    text: @Composable () -> Unit,
+    checked: Boolean,
+    onClick: () -> Unit
+) {
+    DropdownMenuItem(
+        modifier = modifier
+            .semantics {
+                role = Role.RadioButton
+                selected = checked
+
+                selectableGroup()
+            },
+        text = text,
+        onClick = onClick,
+        leadingIcon = {
+            if (checked)
+                Icon(Icons.Default.RadioButtonChecked, null)
+            else
+                Icon(Icons.Default.RadioButtonUnchecked, null)
+        }
+    )
 }

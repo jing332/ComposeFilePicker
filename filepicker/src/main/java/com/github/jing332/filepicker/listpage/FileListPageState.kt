@@ -1,6 +1,7 @@
 package com.github.jing332.filepicker.listpage
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
@@ -36,6 +37,7 @@ class FileListPageState() {
     }
 
     val listState by lazy { LazyListState() }
+    val gridState by lazy { LazyGridState() }
 
     internal var config: FilePickerConfig? = null
     internal val items = mutableStateListOf<FileItem>()
@@ -139,7 +141,7 @@ internal data class FileItem(
     val isBackType: Boolean = false,
 
     val isChecked: MutableState<Boolean> = mutableStateOf(false),
-    val isCheckable: MutableState<Boolean> = mutableStateOf(true),
+    val isCheckable: MutableState<Boolean> = mutableStateOf(false),
 
     val fileCount: MutableIntState = mutableIntStateOf(0),
     val fileSize: MutableState<String> = mutableStateOf("0"),

@@ -5,6 +5,11 @@ import com.github.jing332.filepicker.filetype.FileDetector
 import com.github.jing332.filepicker.model.IFileModel
 
 
+object ViewType {
+    const val LIST = 0
+    const val GRID = 1
+}
+
 fun interface FileFilter {
     fun accept(file: IFileModel): Boolean
 }
@@ -30,5 +35,5 @@ data class FilePickerConfig(
     },
 
     var sortConfig: SortConfig = SortConfig(),
-) {
-}
+    var viewType: Int = ViewType.GRID,
+)

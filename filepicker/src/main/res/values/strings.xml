@@ -14,4 +14,6 @@
     <string name="reverse_sorting">Reverse sorting</string>
     <string name="cancel_select">Cancel select</string>
     <string name="select">Select</string>
+    <string name="list">List</string>
+    <string name="grid">Grid</string>
 </resources>

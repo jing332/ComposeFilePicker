@@ -113,6 +113,7 @@ fun FilePicker(
     ) {
         Column(modifier) {
             var sortConfig by remember { mutableStateOf(config.sortConfig) }
+            var viewType by remember { mutableStateOf(config.viewType) }
             fun getState() = vm.fileListStates[vm.currentPath]
             val selectedCount = getState()?.items?.count { it.isChecked.value } ?: 0
             FilePickerToolbar(
@@ -122,6 +123,12 @@ fun FilePicker(
                 onSortConfigChange = {
                     sortConfig = it
                     config.sortConfig = it
+                    update()
+                },
+                viewType = viewType,
+                onSwitchViewType = {
+                    viewType = it
+                    config.viewType = it
                     update()
                 },
                 selectedCount = selectedCount,
