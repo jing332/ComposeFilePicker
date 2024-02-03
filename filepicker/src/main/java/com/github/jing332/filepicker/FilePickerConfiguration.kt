@@ -1,6 +1,9 @@
 package com.github.jing332.filepicker
 
-import com.github.jing332.filepicker.Contants.DEFAULT_ROOT_PATH
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.github.jing332.filepicker.filetype.FileDetector
 import com.github.jing332.filepicker.model.IFileModel
 
@@ -19,9 +22,7 @@ fun interface FileSelector {
     fun isCheckable(file: IFileModel): Boolean = true
 }
 
-data class FilePickerConfig(
-    val rootPath: String = DEFAULT_ROOT_PATH,
-
+data class FilePickerConfiguration(
     val fileDetector: FileDetector = FileDetector(),
     val fileFilter: FileFilter = FileFilter { true },
     val fileSelector: FileSelector = object : FileSelector {
@@ -33,7 +34,7 @@ data class FilePickerConfig(
             return !file.isDirectory
         }
     },
-
-    var sortConfig: SortConfig = SortConfig(),
-    var viewType: Int = ViewType.GRID,
-)
+) {
+    var viewType by mutableIntStateOf(ViewType.LIST)
+    var sortConfig by mutableStateOf(SortConfig())
+}

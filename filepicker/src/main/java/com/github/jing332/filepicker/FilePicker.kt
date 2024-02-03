@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.util.Log
@@ -13,27 +12,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.github.jing332.filepicker.Contants.ARG_PATH
 import com.github.jing332.filepicker.Contants.ROUTE_PAGE
 import com.github.jing332.filepicker.listpage.FileListPage
-import com.github.jing332.filepicker.listpage.FileListPageState
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.model.NormalFile
-import com.github.jing332.filepicker.utils.navigate
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import java.io.File
@@ -79,11 +71,14 @@ private fun PermissionGrant() {
 @Composable
 fun FilePicker(
     modifier: Modifier = Modifier,
-    config: FilePickerConfig = FilePickerConfig(),
+    initialPath: String = Environment.getExternalStorageDirectory().path,
+    state: FilePickerState = rememberNavController().run {
+        remember { FilePickerState(initialPath, this) }
+    },
+    config: FilePickerConfiguration = FilePickerConfiguration(),
     onConfirmSelect: (List<IFileModel>) -> Unit
 ) {
-    val vm: FilePickerViewModel = viewModel()
-    val navController = rememberNavController()
+    val navController = state.navController
     val navBarItems = remember { mutableStateListOf<NavBarItem>() }
 
     fun popBack() {
@@ -91,108 +86,79 @@ fun FilePicker(
         navController.popBackStack()
     }
 
-    fun navigateNewPath(path: String) {
-        vm.fileListStates[path] = FileListPageState()
-        navController.navigate(ROUTE_PAGE, Bundle().apply {
-            putString(ARG_PATH, path)
-        })
-    }
-
-    fun update() {
-        navController.popBackStack()
-        navController.navigate(ROUTE_PAGE, Bundle().apply {
-            putString(ARG_PATH, config.rootPath)
-        })
-    }
-
     PermissionGrant()
 
-    CompositionLocalProvider(
-        LocalNavController provides navController,
-        LocalFilePickerConfig provides config,
-    ) {
-        Column(modifier) {
-            var sortConfig by remember { mutableStateOf(config.sortConfig) }
-            var viewType by remember { mutableStateOf(config.viewType) }
-            fun getState() = vm.fileListStates[vm.currentPath]
-            val selectedCount = getState()?.items?.count { it.isChecked.value } ?: 0
-            FilePickerToolbar(
-                modifier = Modifier.fillMaxWidth(),
-                title = navBarItems.lastOrNull()?.name ?: "",
-                sortConfig = sortConfig,
-                onSortConfigChange = {
-                    sortConfig = it
-                    config.sortConfig = it
-                    update()
-                },
-                viewType = viewType,
-                onSwitchViewType = {
-                    viewType = it
-                    config.viewType = it
-                    update()
-                },
-                selectedCount = selectedCount,
-                onCancelSelect = {
-                    getState()?.uncheckAll()
-                },
-                onConfirmSelect = {
-                    onConfirmSelect(getState()?.items?.filter { it.isChecked.value }
-                        ?.map { it.model } ?: emptyList())
+    Column(modifier) {
+        val selectedCount = state.currentListState?.items?.count { it.isChecked.value } ?: 0
+        FilePickerToolbar(
+            modifier = Modifier.fillMaxWidth(),
+            title = navBarItems.lastOrNull()?.name ?: "",
+            sortConfig = config.sortConfig,
+            onSortConfigChange = {
+                config.sortConfig = it
+            },
+            viewType = config.viewType,
+            onSwitchViewType = {
+                config.viewType = it
+            },
+            selectedCount = selectedCount,
+            onCancelSelect = {
+                state.currentListState?.uncheckAll()
+            },
+            onConfirmSelect = {
+                onConfirmSelect(state.currentListState?.items?.filter { it.isChecked.value }
+                    ?.map { it.model } ?: emptyList())
+            }
+        )
+
+        FileNavBar(
+            list = navBarItems,
+            modifier = Modifier.padding(horizontal = 8.dp),
+            onClick = { item ->
+                while (true) {
+                    val uri =
+                        navController.currentBackStackEntry?.arguments?.getString(ARG_PATH)
+                            ?: break
+                    if (uri == item.path) break
+                    else popBack()
                 }
-            )
+            })
 
-            FileNavBar(
-                list = navBarItems,
-                modifier = Modifier.padding(horizontal = 8.dp),
-                onClick = { item ->
-                    while (true) {
-                        val uri =
-                            navController.currentBackStackEntry?.arguments?.getString(ARG_PATH)
-                                ?: break
-                        if (uri == item.path) break
-                        else popBack()
-                    }
-                })
+        NavHost(
+            modifier = Modifier.weight(1f),
+            navController = navController,
+            startDestination = ROUTE_PAGE
+        ) {
+            composable(ROUTE_PAGE) { entry ->
+                navController.enableOnBackPressed(false)
+                val path = entry.arguments?.getString(ARG_PATH) ?: initialPath
+                val fileListState = state.getListState(path)
 
-            NavHost(
-                modifier = Modifier.weight(1f),
-                navController = navController,
-                startDestination = ROUTE_PAGE
-            ) {
-                composable(ROUTE_PAGE) { entry ->
-                    navController.enableOnBackPressed(false)
-                    val path = entry.arguments?.getString(ARG_PATH) ?: config.rootPath
-                    val fileListState = vm.fileListStates[path] ?: FileListPageState().run {
-                        vm.fileListStates[path] = this
-                        this
-                    }
-
-                    LaunchedEffect(key1 = Unit) {
-                        vm.currentPath = path
-                    }
-                    BackHandler(path != config.rootPath) {
-                        popBack()
-                    }
-                    BackHandler(selectedCount > 0) {
-                        getState()?.uncheckAll()
-                    }
-
-                    val file = File(path)
-                    if (navBarItems.isEmpty())
-                        navBarItems.add(NavBarItem(name = file.name, path = file.path))
-                    FileListPage(
-                        file = NormalFile(file),
-                        state = fileListState,
-                        config = config,
-                        onBack = { popBack() },
-                        onEnter = { enterFile ->
-                            navBarItems += NavBarItem(name = enterFile.name, path = enterFile.path)
-                            navigateNewPath(enterFile.path)
-                        },
-
-                        )
-
+                LaunchedEffect(key1 = Unit) {
+                    state.currentPath = path
                 }
+                BackHandler(path != initialPath) {
+                    popBack()
+                }
+                BackHandler(selectedCount > 0) {
+                    state.currentListState?.uncheckAll()
+                }
+
+                val file = File(path)
+                if (navBarItems.isEmpty())
+                    navBarItems.add(NavBarItem(name = file.name, path = file.path))
+                FileListPage(
+                    file = NormalFile(file),
+                    state = fileListState,
+                    config = config,
+                    onBack = { popBack() },
+                    onEnter = { enterFile ->
+                        navBarItems += NavBarItem(name = enterFile.name, path = enterFile.path)
+                        state.navigate(enterFile.path)
+                    },
+
+                    )
+
             }
         }
     }

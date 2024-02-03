@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.github.jing332.compose_filepicker.ui.theme.ComposefilepickerTheme
 import com.github.jing332.filepicker.FilePicker
-import com.github.jing332.filepicker.FilePickerConfig
+import com.github.jing332.filepicker.FilePickerConfiguration
 import com.github.jing332.filepicker.model.IFileModel
 
 class MainActivity : ComponentActivity() {
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold { paddingValues ->
                     Column(Modifier.padding(bottom = paddingValues.calculateBottomPadding())) {
                         FilePicker(
-                            config = FilePickerConfig(
+                            config = FilePickerConfiguration(
 //                            fileFilter = { it.name.startsWith("a", ignoreCase = true) },
 //                                fileSelector =
                             ),
