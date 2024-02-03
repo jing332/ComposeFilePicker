@@ -75,8 +75,17 @@ fun FilePicker(
     state: FilePickerState = rememberNavController().run {
         remember { FilePickerState(initialPath, this) }
     },
-    config: FilePickerConfiguration = FilePickerConfiguration(),
-    onConfirmSelect: (List<IFileModel>) -> Unit
+    config: FilePickerConfiguration = remember { FilePickerConfiguration() },
+    onConfirmSelect: (List<IFileModel>) -> Unit,
+    onEnterDirectory: (IFileModel) -> Boolean = {
+        if (it.path.startsWith(Environment.getExternalStorageDirectory().path + "/Android")) {
+            Log.d(TAG, "onEnterDirectory: $it")
+            false
+        } else {
+            state.navigate(it.path)
+            true
+        }
+    },
 ) {
     val navController = state.navController
     val navBarItems = remember { mutableStateListOf<NavBarItem>() }
@@ -96,10 +105,12 @@ fun FilePicker(
             sortConfig = config.sortConfig,
             onSortConfigChange = {
                 config.sortConfig = it
+                state.reload()
             },
             viewType = config.viewType,
             onSwitchViewType = {
                 config.viewType = it
+                state.reload()
             },
             selectedCount = selectedCount,
             onCancelSelect = {
@@ -132,7 +143,10 @@ fun FilePicker(
             composable(ROUTE_PAGE) { entry ->
                 navController.enableOnBackPressed(false)
                 val path = entry.arguments?.getString(ARG_PATH) ?: initialPath
-                val fileListState = state.getListState(path)
+                val fileListState = state.getListState(path).apply {
+                    sortConfig = config.sortConfig
+                    viewType = config.viewType
+                }
 
                 LaunchedEffect(key1 = Unit) {
                     state.currentPath = path
@@ -153,11 +167,10 @@ fun FilePicker(
                     config = config,
                     onBack = { popBack() },
                     onEnter = { enterFile ->
-                        navBarItems += NavBarItem(name = enterFile.name, path = enterFile.path)
-                        state.navigate(enterFile.path)
-                    },
-
-                    )
+                        if (onEnterDirectory(enterFile))
+                            navBarItems += NavBarItem(name = enterFile.name, path = enterFile.path)
+                    }
+                )
 
             }
         }

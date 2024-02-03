@@ -28,7 +28,7 @@ data class FilePickerState(val initialPath: String, val navController: NavHostCo
         })
     }
 
-    fun reload(path: String) {
+    fun reload(path: String = currentPath) {
         navController.popBackStack()
         navigate(path)
     }

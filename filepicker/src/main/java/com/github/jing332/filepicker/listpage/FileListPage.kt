@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import com.github.jing332.filepicker.FilePickerConfiguration
 import com.github.jing332.filepicker.R
+import com.github.jing332.filepicker.SortConfig
 import com.github.jing332.filepicker.ViewType
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.utils.performLongPress
@@ -31,6 +32,7 @@ fun FileListPage(
     modifier: Modifier = Modifier,
     config: FilePickerConfiguration = FilePickerConfiguration(),
     state: FileListPageState = FileListPageState(),
+
     file: IFileModel,
     onBack: () -> Unit,
     onEnter: (IFileModel) -> Unit,
@@ -38,12 +40,12 @@ fun FileListPage(
     val hasChecked by rememberUpdatedState(newValue = state.hasChecked())
 
     val view = LocalView.current
-    LaunchedEffect(key1 = config) {
-        state.config = config
-    }
+
     LaunchedEffect(key1 = file) {
-        if (state.items.isEmpty())
+        if (state.items.isEmpty()){
+            state.config = config
             state.updateFiles(file)
+        }
     }
 
     LaunchedEffect(key1 = hasChecked) {
