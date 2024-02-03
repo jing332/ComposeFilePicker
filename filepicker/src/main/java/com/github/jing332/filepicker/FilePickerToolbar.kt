@@ -1,5 +1,6 @@
 package com.github.jing332.filepicker
 
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,15 +10,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -37,6 +41,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
+private const val TAG = "FilePicker"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,12 +53,6 @@ internal fun BasicToolbar(
 ) {
     Column(modifier) {
         TopAppBar(title = title, navigationIcon = navigationIcon, actions = actions)
-        Divider(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp)
-                .shadow(4.dp)
-        )
     }
 }
 
@@ -70,75 +69,103 @@ fun FilePickerToolbar(
     selectedCount: Int,
     onCancelSelect: () -> Unit,
     onConfirmSelect: () -> Unit,
+
+    onNewFolder: (String) -> Unit
 ) {
-    Crossfade(targetState = selectedCount > 0, label = "") {
-        if (it)
-            BasicToolbar(title = { Text(text = "$selectedCount") }, modifier = modifier,
-                navigationIcon = {
-                    IconButton(onClick = onCancelSelect) {
-                        Icon(Icons.Default.Close, stringResource(R.string.cancel_select))
-                    }
-                },
-                actions = {
-                    TextButton(onClick = onConfirmSelect) {
-                        Text(stringResource(id = R.string.select))
-                    }
+    Column {
+        Crossfade(targetState = selectedCount > 0, label = "") {
+            if (it)
+                BasicToolbar(title = { Text(text = "$selectedCount") }, modifier = modifier,
+                    navigationIcon = {
+                        IconButton(onClick = onCancelSelect) {
+                            Icon(Icons.Default.Close, stringResource(R.string.cancel_select))
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = onConfirmSelect) {
+                            Text(stringResource(id = R.string.select))
+                        }
 //                    IconButton(onClick = {  }) {
 //                        Icon(Icons.Default.MoreVert, stringResource(R.string.more_options))
 //                    }
-                })
-        else
-            BasicToolbar(modifier = modifier, title = { Text(title) }, actions = {
-                var showSortConfigDialog by remember { mutableStateOf(false) }
-                if (showSortConfigDialog)
-                    SortSettingsDialog(
-                        onDismissRequest = { showSortConfigDialog = false },
-                        sortConfig = sortConfig,
-                        onConfirm = onSortConfigChange
-                    )
-                var showOptions by rememberSaveable { mutableStateOf(false) }
-                IconButton(onClick = { showOptions = true }) {
-                    Icon(Icons.Default.MoreVert, stringResource(R.string.more_options))
-                    DropdownMenu(
-                        expanded = showOptions,
-                        onDismissRequest = { showOptions = false }) {
-                        RadioDropdownMenuItem(
-                            text = {
-                                Text(stringResource(id = R.string.list))
-                            },
-                            checked = viewType == ViewType.LIST,
-                            onClick = {
-                                showOptions = false
-                                onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
-                            }
+                    })
+            else
+                BasicToolbar(modifier = modifier, title = { Text(title) }, actions = {
+                    var showSortConfigDialog by remember { mutableStateOf(false) }
+                    if (showSortConfigDialog)
+                        SortSettingsDialog(
+                            onDismissRequest = { showSortConfigDialog = false },
+                            sortConfig = sortConfig,
+                            onConfirm = onSortConfigChange
                         )
-                        RadioDropdownMenuItem(
-                            text = {
-                                Text(stringResource(id = R.string.grid))
-                            },
-                            checked = viewType == ViewType.GRID,
-                            onClick = {
-                                showOptions = false
-                                onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
+
+                    var addFolderDialog by remember { mutableStateOf(false) }
+                    if (addFolderDialog)
+                        NewFolderDialog(
+                            onDismissRequest = { addFolderDialog = false },
+                            onConfirm = {
+                                runCatching {
+                                    onNewFolder(it)
+                                }.onFailure { t ->
+                                    Log.e(TAG, "newFolder", t)
+                                }
                             }
                         )
 
-                        Divider(Modifier.fillMaxWidth())
-                        DropdownMenuItem(
-                            text = {
-                                Row {
-                                    Icon(Icons.AutoMirrored.Filled.Sort, null)
-                                    Text(stringResource(id = R.string.sort_by))
-                                }
-                            },
-                            onClick = {
-                                showOptions = false
-                                showSortConfigDialog = true
-                            }
-                        )
+                    IconButton(onClick = { addFolderDialog = true }) {
+                        Icon(Icons.Default.CreateNewFolder, stringResource(R.string.new_folder))
                     }
-                }
-            })
+
+                    var showOptions by rememberSaveable { mutableStateOf(false) }
+                    IconButton(onClick = { showOptions = true }) {
+                        Icon(Icons.Default.MoreVert, stringResource(R.string.more_options))
+                        DropdownMenu(
+                            expanded = showOptions,
+                            onDismissRequest = { showOptions = false }) {
+                            RadioDropdownMenuItem(
+                                text = {
+                                    Text(stringResource(id = R.string.list))
+                                },
+                                checked = viewType == ViewType.LIST,
+                                onClick = {
+                                    showOptions = false
+                                    onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
+                                }
+                            )
+                            RadioDropdownMenuItem(
+                                text = {
+                                    Text(stringResource(id = R.string.grid))
+                                },
+                                checked = viewType == ViewType.GRID,
+                                onClick = {
+                                    showOptions = false
+                                    onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
+                                }
+                            )
+
+                            Divider(Modifier.fillMaxWidth())
+                            DropdownMenuItem(
+                                text = {
+                                    Row {
+                                        Icon(Icons.AutoMirrored.Filled.Sort, null)
+                                        Text(stringResource(id = R.string.sort_by))
+                                    }
+                                },
+                                onClick = {
+                                    showOptions = false
+                                    showSortConfigDialog = true
+                                }
+                            )
+                        }
+                    }
+                })
+        }
+        Divider(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp)
+                .shadow(4.dp)
+        )
     }
 }
 
@@ -164,6 +191,32 @@ internal fun RadioDropdownMenuItem(
                 Icon(Icons.Default.RadioButtonChecked, null)
             else
                 Icon(Icons.Default.RadioButtonUnchecked, null)
+        }
+    )
+}
+
+@Composable
+private fun NewFolderDialog(onDismissRequest: () -> Unit, onConfirm: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    AlertDialog(onDismissRequest = onDismissRequest,
+        title = { Text(stringResource(id = R.string.new_folder)) },
+        text = {
+            OutlinedTextField(value = text, onValueChange = { text = it })
+        },
+        confirmButton = {
+            TextButton(
+                enabled = text.isNotBlank(),
+                onClick = {
+                    onConfirm(text)
+                    onDismissRequest()
+                }) {
+                Text(stringResource(id = android.R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text(stringResource(id = android.R.string.cancel))
+            }
         }
     )
 }

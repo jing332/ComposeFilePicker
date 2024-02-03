@@ -1,6 +1,5 @@
 package com.github.jing332.filepicker.listpage
 
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -10,8 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,7 +18,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import com.github.jing332.filepicker.FilePickerConfiguration
 import com.github.jing332.filepicker.R
-import com.github.jing332.filepicker.SortConfig
 import com.github.jing332.filepicker.ViewType
 import com.github.jing332.filepicker.model.IFileModel
 import com.github.jing332.filepicker.utils.performLongPress
@@ -42,8 +38,9 @@ fun FileListPage(
     val view = LocalView.current
 
     LaunchedEffect(key1 = file) {
-        if (state.items.isEmpty()){
+        if (state.items.isEmpty()) {
             state.config = config
+            state.file = file
             state.updateFiles(file)
         }
     }
@@ -74,27 +71,16 @@ fun FileListPage(
                         fileType.IconContent()
                 }
             },
-            title = {
-                Text(text = item.name, style = MaterialTheme.typography.titleMedium)
-            },
-            subtitle = {
-                val text = if (item.isBackType)
-                    stringResource(R.string.back_to_previous_dir)
-                else
-                    "${item.fileLastModified.value} | " +
-                            if (item.isDirectory) stringResource(
-                                R.string.item_desc,
-                                item.fileCount.intValue
-                            )
-                            else item.fileSize.value
-                Row {
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
+            title = item.name,
+            subtitle = if (item.isBackType)
+                stringResource(R.string.back_to_previous_dir)
+            else
+                "${item.fileLastModified.value} | " +
+                        if (item.isDirectory) stringResource(
+                            R.string.item_desc,
+                            item.fileCount.intValue
+                        )
+                        else item.fileSize.value,
             onCheckedChange = { _ ->
                 state.selector(item)
             },

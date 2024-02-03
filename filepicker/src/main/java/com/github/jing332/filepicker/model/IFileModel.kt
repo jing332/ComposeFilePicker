@@ -8,5 +8,8 @@ abstract class IFileModel {
     open val time: Long = 0
     open val size: Long = 0
 
+    open fun createDirectory(name: String) {}
+    open fun createFile(name: String) {}
+
     open fun files(): List<IFileModel> = emptyList()
 }

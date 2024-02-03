@@ -8,7 +8,11 @@ import androidx.navigation.NavHostController
 import com.github.jing332.filepicker.listpage.FileListPageState
 import com.github.jing332.filepicker.utils.navigate
 
-data class FilePickerState(val initialPath: String, val navController: NavHostController) {
+data class FilePickerState(
+    val rootPath: String,
+    val initialPath: String,
+    val navController: NavHostController
+) {
     //    var currentModel by mutableStateOf<IFileModel?>(null)
     var currentPath by mutableStateOf(initialPath)
     val fileListStates = mutableMapOf<String, FileListPageState>()

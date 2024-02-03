@@ -12,6 +12,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,6 +22,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -30,8 +33,8 @@ internal fun Item(
     onCheckedChange: (Boolean) -> Unit,
     isCheckable: Boolean = true,
     icon: @Composable () -> Unit,
-    title: @Composable () -> Unit,
-    subtitle: @Composable () -> Unit,
+    title: String,
+    subtitle: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     gridType: Boolean
@@ -44,7 +47,6 @@ internal fun Item(
             isCheckable = isCheckable,
             icon = icon,
             title = title,
-            subtitle = subtitle,
             onClick = onClick,
             onLongClick = onLongClick
         )
@@ -70,8 +72,8 @@ internal fun LongItem(
     onCheckedChange: (Boolean) -> Unit,
     isCheckable: Boolean = true,
     icon: @Composable () -> Unit,
-    title: @Composable () -> Unit,
-    subtitle: @Composable () -> Unit,
+    title: String,
+    subtitle: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -98,13 +100,13 @@ internal fun LongItem(
         Row(Modifier.padding(8.dp)) {
             icon()
         }
-        Column(Modifier.weight(1f)) {
-            title()
-            subtitle()
-        }
-
-        AnimatedVisibility(visible = isCheckable) {
-            Checkbox(checked = isChecked, onCheckedChange = onCheckedChange)
+        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+            Title(
+                modifier = Modifier,
+                title = title,
+                isChecked = isChecked
+            )
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -117,8 +119,7 @@ internal fun ShortItem(
     onCheckedChange: (Boolean) -> Unit,
     isCheckable: Boolean = true,
     icon: @Composable () -> Unit,
-    title: @Composable () -> Unit,
-    subtitle: @Composable () -> Unit,
+    title: String,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -146,14 +147,25 @@ internal fun ShortItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             icon()
-            Column(Modifier.weight(1f)) {
-                title()
-//                subtitle()
-            }
-            AnimatedVisibility(visible = isCheckable) {
-                Checkbox(checked = isChecked, onCheckedChange = onCheckedChange)
-            }
+            Title(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 4.dp),
+                title = title,
+                isChecked = isChecked
+            )
         }
-
     }
+}
+
+@Composable
+fun Title(modifier: Modifier = Modifier, title: String, isChecked: Boolean) {
+    Text(
+        modifier = modifier,
+        text = title,
+        fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal,
+        maxLines = 1,
+        style = MaterialTheme.typography.titleMedium,
+        overflow = TextOverflow.Ellipsis
+    )
 }

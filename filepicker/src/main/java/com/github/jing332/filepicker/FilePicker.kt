@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,9 +72,17 @@ private fun PermissionGrant() {
 @Composable
 fun FilePicker(
     modifier: Modifier = Modifier,
-    initialPath: String = Environment.getExternalStorageDirectory().path,
+    rootName: String = "root",
+    rootPath: String = Environment.getExternalStorageDirectory().path,
+    initialPath: String = rootPath,
     state: FilePickerState = rememberNavController().run {
-        remember { FilePickerState(initialPath, this) }
+        remember {
+            FilePickerState(
+                rootPath = rootPath,
+                initialPath = initialPath,
+                navController = this
+            )
+        }
     },
     config: FilePickerConfiguration = remember { FilePickerConfiguration() },
     onConfirmSelect: (List<IFileModel>) -> Unit,
@@ -87,11 +96,11 @@ fun FilePicker(
         }
     },
 ) {
+    val context = LocalContext.current
     val navController = state.navController
     val navBarItems = remember { mutableStateListOf<NavBarItem>() }
 
     fun popBack() {
-        navBarItems.remove(navBarItems.last())
         navController.popBackStack()
     }
 
@@ -119,6 +128,23 @@ fun FilePicker(
             onConfirmSelect = {
                 onConfirmSelect(state.currentListState?.items?.filter { it.isChecked.value }
                     ?.map { it.model } ?: emptyList())
+            },
+            onNewFolder = {
+                try {
+                    state.currentListState?.createNewFolder(it)
+                    state.reload()
+                } catch (e: SecurityException) {
+                    Log.e(TAG, "createNewFolder", e)
+                    Toast.makeText(
+                        context,
+                        "权限不足：${e.localizedMessage ?: ""}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } catch (e: Exception) {
+                    Log.e(TAG, "createNewFolder", e)
+                    Toast.makeText(context, "失败：${e.localizedMessage ?: ""}", Toast.LENGTH_LONG)
+                        .show()
+                }
             }
         )
 
@@ -150,6 +176,11 @@ fun FilePicker(
 
                 LaunchedEffect(key1 = Unit) {
                     state.currentPath = path
+                    toNavBarItems(
+                        rootPath = rootPath,
+                        rootName = rootName,
+                        path = path
+                    ).also { navBarItems.clear(); navBarItems.addAll(it) }
                 }
                 BackHandler(path != initialPath) {
                     popBack()
@@ -159,13 +190,16 @@ fun FilePicker(
                 }
 
                 val file = File(path)
-                if (navBarItems.isEmpty())
-                    navBarItems.add(NavBarItem(name = file.name, path = file.path))
                 FileListPage(
                     file = NormalFile(file),
                     state = fileListState,
                     config = config,
-                    onBack = { popBack() },
+                    onBack = {
+                        if (fileListState.hasChecked()) {
+                            state.currentListState?.uncheckAll()
+                        } else
+                            popBack()
+                    },
                     onEnter = { enterFile ->
                         if (onEnterDirectory(enterFile))
                             navBarItems += NavBarItem(name = enterFile.name, path = enterFile.path)

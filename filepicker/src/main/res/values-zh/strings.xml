@@ -16,4 +16,5 @@
     <string name="by_type">按类型</string>
     <string name="list">列表</string>
     <string name="grid">网格</string>
+    <string name="new_folder">新建文件夹</string>
 </resources>

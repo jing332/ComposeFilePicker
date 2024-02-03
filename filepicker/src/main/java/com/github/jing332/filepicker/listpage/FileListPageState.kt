@@ -45,6 +45,7 @@ class FileListPageState(
         }
     }
 
+    lateinit var file: IFileModel
     var viewType by mutableIntStateOf(ViewType.LIST)
     var sortConfig by mutableStateOf(SortConfig())
 
@@ -142,6 +143,10 @@ class FileListPageState(
                 item.isCheckable.value = config!!.fileSelector.isCheckable(item.model)
             }
         }
+    }
+
+    fun createNewFolder(name: String) {
+        file.createDirectory(name)
     }
 }
 

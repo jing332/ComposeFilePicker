@@ -16,4 +16,5 @@
     <string name="select">Select</string>
     <string name="list">List</string>
     <string name="grid">Grid</string>
+    <string name="new_folder">新建文件夹</string>
 </resources>

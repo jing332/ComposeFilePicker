@@ -21,4 +21,8 @@ data class NormalFile(
     override fun files(): List<IFileModel> {
         return file.listFiles()?.map { NormalFile(it) } ?: emptyList()
     }
+
+    override fun createDirectory(name: String) {
+        file.resolve(name ).mkdir()
+    }
 }
