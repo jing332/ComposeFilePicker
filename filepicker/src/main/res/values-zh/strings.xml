@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back_to_previous_dir">Back to previous directory</string>
+    <string name="folder">Folder</string>
+    <string name="file">File</string>
+    <string name="item_desc">%1$sItems</string>
+    <string name="search">Search</string>
+    <string name="more_options">More options</string>
+    <string name="sort_by">Sort by</string>
+    <string name="by_name">By name</string>
+    <string name="by_size">By size</string>
+    <string name="by_date">By date</string>
+    <string name="by_type">By type</string>
+    <string name="reverse_sorting">Reverse sorting</string>
+    <string name="cancel_select">Cancel select</string>
+    <string name="select">Select</string>
+    <string name="list">List</string>
+    <string name="grid">Grid</string>
+    <string name="new_folder">New folder</string>
+    <string name="cancel_search">Cancel search</string>
+    <string name="refresh">Refresh</string>
+    <string name="search_type">Search type</string>
+    <string name="all">all</string>
+    <string name="error_permission_denied">Permission denied: %1$s</string>
+</resources>
