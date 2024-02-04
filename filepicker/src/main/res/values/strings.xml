@@ -3,7 +3,7 @@
     <string name="back_to_previous_dir">Back to previous directory</string>
     <string name="folder">Folder</string>
     <string name="file">File</string>
-    <string name="item_desc">%1$sItems</string>
+    <string name="item_desc">%1$s Items</string>
     <string name="search">Search</string>
     <string name="more_options">More options</string>
     <string name="sort_by">Sort by</string>

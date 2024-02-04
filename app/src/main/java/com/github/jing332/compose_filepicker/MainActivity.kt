@@ -1,9 +1,10 @@
 package com.github.jing332.compose_filepicker
 
+import android.content.res.Configuration
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,12 +23,24 @@ import com.github.jing332.compose_filepicker.ui.theme.ComposefilepickerTheme
 import com.github.jing332.filepicker.FilePicker
 import com.github.jing332.filepicker.FilePickerConfiguration
 import com.github.jing332.filepicker.model.IFileModel
+import java.util.Locale
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
+    @Suppress("DEPRECATION", "unused")
+    private fun setLocale(locale:Locale ){
+        Locale.setDefault(locale)
+        val config = Configuration()
+        config.locale = locale
+        resources.updateConfiguration(config, null)
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+//        setLocale(Locale("en"))
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             ComposefilepickerTheme {
                 var showSelectedList by remember { mutableStateOf<List<IFileModel>?>(null) }
