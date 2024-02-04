@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.github.jing332.filepicker.FileFilter
 import com.github.jing332.filepicker.FilePickerConfiguration
+import com.github.jing332.filepicker.SearchType
 import com.github.jing332.filepicker.SortConfig
 import com.github.jing332.filepicker.SortType
 import com.github.jing332.filepicker.ViewType
@@ -148,6 +149,17 @@ class FileListPageState(
     fun createNewFolder(name: String) {
         file.createDirectory(name)
     }
+
+    fun search(type: Int, text: String) {
+        for (item in items) {
+            item.isVisible.value = when (type) {
+                SearchType.ALL -> item.name.contains(text, true)
+                SearchType.FILE -> !item.isDirectory && item.name.contains(text, true)
+                SearchType.FOLDER -> item.isDirectory && item.name.contains(text, true)
+                else -> true
+            }
+        }
+    }
 }
 
 internal data class FileItem(
@@ -159,6 +171,7 @@ internal data class FileItem(
 
     val isChecked: MutableState<Boolean> = mutableStateOf(false),
     val isCheckable: MutableState<Boolean> = mutableStateOf(false),
+    val isVisible: MutableState<Boolean> = mutableStateOf(true),
 
     val fileCount: MutableIntState = mutableIntStateOf(0),
     val fileSize: MutableState<String> = mutableStateOf("0"),

@@ -1,6 +1,8 @@
 package com.github.jing332.filepicker
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +16,8 @@ import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -26,7 +30,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,6 +47,8 @@ import androidx.compose.ui.semantics.selectableGroup
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 private const val TAG = "FilePicker"
 
@@ -56,6 +65,12 @@ internal fun BasicToolbar(
     }
 }
 
+private object Navigation {
+    const val MAIN = 0
+    const val SEARCH = 1
+    const val SELECT = 2
+}
+
 @Composable
 fun FilePickerToolbar(
     modifier: Modifier,
@@ -70,11 +85,27 @@ fun FilePickerToolbar(
     onCancelSelect: () -> Unit,
     onConfirmSelect: () -> Unit,
 
-    onNewFolder: (String) -> Unit
+    onNewFolder: (String) -> Unit,
+    closeSearch: MutableState<Boolean>,
+    onSearch: (Int, String) -> Unit,
+    onRefresh: () -> Unit,
 ) {
+    var showSearch by rememberSaveable { mutableStateOf(false) }
+    var searchText by rememberSaveable { mutableStateOf("") }
+    var searchType by rememberSaveable { mutableIntStateOf(SearchType.ALL) }
+
+    if (closeSearch.value) {
+        showSearch = false
+        closeSearch.value = false
+        onSearch(SearchType.ALL, "")
+        searchText = ""
+    }
+
+    BackHandler(showSearch) { closeSearch.value = true }
     Column {
-        Crossfade(targetState = selectedCount > 0, label = "") {
-            if (it)
+
+        Crossfade(targetState = selectedCount > 0, label = "") { selectMode ->
+            if (selectMode)
                 BasicToolbar(title = { Text(text = "$selectedCount") }, modifier = modifier,
                     navigationIcon = {
                         IconButton(onClick = onCancelSelect) {
@@ -90,75 +121,117 @@ fun FilePickerToolbar(
 //                    }
                     })
             else
-                BasicToolbar(modifier = modifier, title = { Text(title) }, actions = {
-                    var showSortConfigDialog by remember { mutableStateOf(false) }
-                    if (showSortConfigDialog)
-                        SortSettingsDialog(
-                            onDismissRequest = { showSortConfigDialog = false },
-                            sortConfig = sortConfig,
-                            onConfirm = onSortConfigChange
-                        )
+                BasicToolbar(modifier = modifier,
+                    title = {
+                        Crossfade(targetState = showSearch, label = "") { search ->
+                            if (search) {
+                                LaunchedEffect(Unit) {
+                                    var lastType = 0
+                                    var lastText = ""
+                                    while (coroutineContext.isActive) {
+                                        delay(500)
+                                        if (lastType == searchType && lastText == searchText) continue
+                                        onSearch(searchType, searchText)
 
-                    var addFolderDialog by remember { mutableStateOf(false) }
-                    if (addFolderDialog)
-                        NewFolderDialog(
-                            onDismissRequest = { addFolderDialog = false },
-                            onConfirm = {
-                                runCatching {
-                                    onNewFolder(it)
-                                }.onFailure { t ->
-                                    Log.e(TAG, "newFolder", t)
+                                        lastType = searchType
+                                        lastText = searchText
+                                    }
+                                }
+                                SearchTextField(
+                                    value = searchText,
+                                    onValueChange = { searchText = it },
+                                    type = searchType,
+                                    onTypeChange = { searchType = it },
+                                    onClose = { closeSearch.value = true }
+                                )
+                            } else
+                                Text(text = title, maxLines = 1)
+                        }
+                    },
+                    actions = {
+                        var showSortConfigDialog by remember { mutableStateOf(false) }
+                        if (showSortConfigDialog)
+                            SortSettingsDialog(
+                                onDismissRequest = { showSortConfigDialog = false },
+                                sortConfig = sortConfig,
+                                onConfirm = onSortConfigChange
+                            )
+
+                        var addFolderDialog by remember { mutableStateOf(false) }
+                        if (addFolderDialog)
+                            NewFolderDialog(
+                                onDismissRequest = { addFolderDialog = false },
+                                onConfirm = {
+                                    runCatching {
+                                        onNewFolder(it)
+                                    }.onFailure { t ->
+                                        Log.e(TAG, "newFolder", t)
+                                    }
+                                }
+                            )
+
+                        AnimatedVisibility(visible = !showSearch) {
+                            Row {
+                                IconButton(onClick = { showSearch = true }) {
+                                    Icon(Icons.Default.Search, stringResource(id = R.string.search))
+                                }
+                                IconButton(onClick = { addFolderDialog = true }) {
+                                    Icon(
+                                        Icons.Default.CreateNewFolder,
+                                        stringResource(R.string.new_folder)
+                                    )
                                 }
                             }
-                        )
-
-                    IconButton(onClick = { addFolderDialog = true }) {
-                        Icon(Icons.Default.CreateNewFolder, stringResource(R.string.new_folder))
-                    }
-
-                    var showOptions by rememberSaveable { mutableStateOf(false) }
-                    IconButton(onClick = { showOptions = true }) {
-                        Icon(Icons.Default.MoreVert, stringResource(R.string.more_options))
-                        DropdownMenu(
-                            expanded = showOptions,
-                            onDismissRequest = { showOptions = false }) {
-                            RadioDropdownMenuItem(
-                                text = {
-                                    Text(stringResource(id = R.string.list))
-                                },
-                                checked = viewType == ViewType.LIST,
-                                onClick = {
-                                    showOptions = false
-                                    onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
-                                }
-                            )
-                            RadioDropdownMenuItem(
-                                text = {
-                                    Text(stringResource(id = R.string.grid))
-                                },
-                                checked = viewType == ViewType.GRID,
-                                onClick = {
-                                    showOptions = false
-                                    onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
-                                }
-                            )
-
-                            Divider(Modifier.fillMaxWidth())
-                            DropdownMenuItem(
-                                text = {
-                                    Row {
-                                        Icon(Icons.AutoMirrored.Filled.Sort, null)
-                                        Text(stringResource(id = R.string.sort_by))
-                                    }
-                                },
-                                onClick = {
-                                    showOptions = false
-                                    showSortConfigDialog = true
-                                }
-                            )
                         }
-                    }
-                })
+
+                        var showOptions by rememberSaveable { mutableStateOf(false) }
+                        IconButton(onClick = { showOptions = true }) {
+                            Icon(Icons.Default.MoreVert, stringResource(R.string.more_options))
+                            DropdownMenu(
+                                expanded = showOptions,
+                                onDismissRequest = { showOptions = false }) {
+                                RadioDropdownMenuItem(
+                                    text = {
+                                        Text(stringResource(id = R.string.list))
+                                    },
+                                    checked = viewType == ViewType.LIST,
+                                    onClick = {
+                                        showOptions = false
+                                        onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
+                                    }
+                                )
+                                RadioDropdownMenuItem(
+                                    text = {
+                                        Text(stringResource(id = R.string.grid))
+                                    },
+                                    checked = viewType == ViewType.GRID,
+                                    onClick = {
+                                        showOptions = false
+                                        onSwitchViewType(if (viewType == ViewType.LIST) ViewType.GRID else ViewType.LIST)
+                                    }
+                                )
+
+                                Divider(Modifier.fillMaxWidth())
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(id = R.string.sort_by)) },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Sort, null) },
+                                    onClick = {
+                                        showOptions = false
+                                        showSortConfigDialog = true
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(id = R.string.refresh)) },
+                                    leadingIcon = { Icon(Icons.Default.Refresh, null) },
+                                    onClick = {
+                                        showOptions = false
+                                        onRefresh()
+                                    }
+                                )
+                            }
+                        }
+                    })
         }
         Divider(
             modifier = Modifier

@@ -51,6 +51,7 @@ fun FileListPage(
 
     @Composable
     fun itemContent(item: FileItem) {
+        if (!item.isVisible.value) return
         Item(
             isChecked = item.isChecked.value,
             isCheckable = if (item.isBackType) false else item.isCheckable.value,

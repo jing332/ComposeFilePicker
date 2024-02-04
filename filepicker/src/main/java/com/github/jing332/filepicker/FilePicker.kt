@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -72,7 +73,7 @@ private fun PermissionGrant() {
 @Composable
 fun FilePicker(
     modifier: Modifier = Modifier,
-    rootName: String = "root",
+    rootName: String = "Storage",
     rootPath: String = Environment.getExternalStorageDirectory().path,
     initialPath: String = rootPath,
     state: FilePickerState = rememberNavController().run {
@@ -108,6 +109,7 @@ fun FilePicker(
 
     Column(modifier) {
         val selectedCount = state.currentListState?.items?.count { it.isChecked.value } ?: 0
+        val flagCloseSearch = remember { mutableStateOf(false) }
         FilePickerToolbar(
             modifier = Modifier.fillMaxWidth(),
             title = navBarItems.lastOrNull()?.name ?: "",
@@ -137,14 +139,23 @@ fun FilePicker(
                     Log.e(TAG, "createNewFolder", e)
                     Toast.makeText(
                         context,
-                        "权限不足：${e.localizedMessage ?: ""}",
+                        context.getString(
+                            R.string.error_permission_denied,
+                            e.localizedMessage ?: ""
+                        ),
                         Toast.LENGTH_LONG
                     ).show()
                 } catch (e: Exception) {
                     Log.e(TAG, "createNewFolder", e)
-                    Toast.makeText(context, "失败：${e.localizedMessage ?: ""}", Toast.LENGTH_LONG)
-                        .show()
+                    Toast.makeText(context, e.localizedMessage, Toast.LENGTH_LONG).show()
                 }
+            },
+            closeSearch = flagCloseSearch,
+            onSearch = { type, text ->
+                state.currentListState?.search(type, text)
+            },
+            onRefresh = {
+                state.reload()
             }
         )
 
@@ -159,7 +170,8 @@ fun FilePicker(
                     if (uri == item.path) break
                     else popBack()
                 }
-            })
+            }
+        )
 
         NavHost(
             modifier = Modifier.weight(1f),
@@ -175,6 +187,7 @@ fun FilePicker(
                 }
 
                 LaunchedEffect(key1 = Unit) {
+                    flagCloseSearch.value = true
                     state.currentPath = path
                     toNavBarItems(
                         rootPath = rootPath,

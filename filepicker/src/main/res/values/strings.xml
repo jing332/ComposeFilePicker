@@ -16,5 +16,10 @@
     <string name="select">Select</string>
     <string name="list">List</string>
     <string name="grid">Grid</string>
-    <string name="new_folder">新建文件夹</string>
+    <string name="new_folder">New folder</string>
+    <string name="cancel_search">Cancel search</string>
+    <string name="refresh">Refresh</string>
+    <string name="search_type">Search type</string>
+    <string name="all">all</string>
+    <string name="error_permission_denied">Permission denied: %1$s</string>
 </resources>
