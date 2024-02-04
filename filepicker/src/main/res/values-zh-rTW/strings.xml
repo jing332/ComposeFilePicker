@@ -10,10 +10,10 @@
     <string name="by_name">按名稱</string>
     <string name="by_size">按大小</string>
     <string name="by_date">按時間</string>
+    <string name="by_type">按類型</string>
     <string name="reverse_sorting">逆向排序</string>
     <string name="cancel_select">取消選擇</string>
     <string name="select">選擇</string>
-    <string name="by_type">按類型</string>
     <string name="list">列表</string>
     <string name="grid">網格</string>
     <string name="new_folder">新建資料夾</string>
