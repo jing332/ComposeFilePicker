@@ -9,20 +9,29 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.github.jing332.filepicker.Contants.ARG_PATH
 import com.github.jing332.filepicker.Contants.ROUTE_PAGE
 import com.github.jing332.filepicker.listpage.FileListPage
@@ -73,19 +82,12 @@ private fun PermissionGrant() {
 @Composable
 fun FilePicker(
     modifier: Modifier = Modifier,
-    rootName: String = "Storage",
-    rootPath: String = Environment.getExternalStorageDirectory().path,
-    initialPath: String = rootPath,
-    state: FilePickerState = rememberNavController().run {
-        remember {
-            FilePickerState(
-                rootPath = rootPath,
-                initialPath = initialPath,
-                navController = this
-            )
-        }
-    },
+
+    state: FilePickerState = rememberFilePickerState(),
     config: FilePickerConfiguration = remember { FilePickerConfiguration() },
+
+    onSaveFile: ((IFileModel, String) -> Boolean)? = null,
+
     onConfirmSelect: (List<IFileModel>) -> Unit,
     onEnterDirectory: (IFileModel) -> Boolean = {
         if (it.path.startsWith(Environment.getExternalStorageDirectory().path + "/Android")) {
@@ -97,9 +99,23 @@ fun FilePicker(
         }
     },
 ) {
+    val rootPath = state.rootPath
+    val rootName = state.rootName
+    val saveMode = onSaveFile != null
     val context = LocalContext.current
     val navController = state.navController
+    val stackEntry by navController.currentBackStackEntryAsState()
     val navBarItems = remember { mutableStateListOf<NavBarItem>() }
+
+
+    LaunchedEffect(key1 = stackEntry) {
+        val path = stackEntry?.arguments?.getString(ARG_PATH) ?: rootPath
+        toNavBarItems(
+            rootPath = rootPath,
+            rootName = rootName,
+            path = path
+        ).also { navBarItems.clear(); navBarItems.addAll(it) }
+    }
 
     fun popBack() {
         navController.popBackStack()
@@ -108,7 +124,13 @@ fun FilePicker(
     PermissionGrant()
 
     Column(modifier) {
-        val selectedCount = state.currentListState?.items?.count { it.isChecked.value } ?: 0
+        val selectedItems = state.currentListState?.findSelectedItems() ?: emptyList()
+        if (selectedItems.isNotEmpty() && saveMode) {
+            selectedItems.getOrNull(0)?.name?.let {
+                state.saveFilename = it
+            }
+            state.currentListState?.uncheckAll()
+        }
         val flagCloseSearch = remember { mutableStateOf(false) }
         FilePickerToolbar(
             modifier = Modifier.fillMaxWidth(),
@@ -123,7 +145,7 @@ fun FilePicker(
                 config.viewType = it
                 state.reload()
             },
-            selectedCount = selectedCount,
+            selectedCount = selectedItems.size,
             onCancelSelect = {
                 state.currentListState?.uncheckAll()
             },
@@ -180,25 +202,23 @@ fun FilePicker(
         ) {
             composable(ROUTE_PAGE) { entry ->
                 navController.enableOnBackPressed(false)
-                val path = entry.arguments?.getString(ARG_PATH) ?: initialPath
+
+                val path = entry.arguments?.getString(ARG_PATH) ?: rootPath
                 val fileListState = state.getListState(path).apply {
                     sortConfig = config.sortConfig
                     viewType = config.viewType
                 }
 
+
                 LaunchedEffect(key1 = Unit) {
                     flagCloseSearch.value = true
                     state.currentPath = path
-                    toNavBarItems(
-                        rootPath = rootPath,
-                        rootName = rootName,
-                        path = path
-                    ).also { navBarItems.clear(); navBarItems.addAll(it) }
+
                 }
-                BackHandler(path != initialPath) {
+                BackHandler(path != rootPath) {
                     popBack()
                 }
-                BackHandler(selectedCount > 0) {
+                BackHandler(selectedItems.isNotEmpty()) {
                     state.currentListState?.uncheckAll()
                 }
 
@@ -221,5 +241,37 @@ fun FilePicker(
 
             }
         }
+
+        AnimatedVisibility(visible = saveMode) {
+            Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                DenseTextField(
+                    modifier = Modifier.weight(1f),
+                    value = state.saveFilename,
+                    onValueChange = {
+                        state.saveFilename = it
+                    },
+                    leadingIcon = {
+                        val detect =
+                            config.fileDetector.detect(NormalFile(File(state.currentPath + "/" + state.saveFilename)))
+                        if (detect == null)
+                            Icon(Icons.AutoMirrored.Filled.InsertDriveFile, null)
+                        else
+                            detect.IconContent()
+                    }
+                )
+
+                FilledTonalButton(
+                    modifier = modifier.padding(start = 8.dp), onClick = {
+                        onSaveFile?.invoke(
+                            state.currentListState?.file!!,
+                            state.saveFilename ?: ""
+                        )
+                    }) {
+//                    Icon(Icons.Default.Save, stringResource(id = android.R.string.ok))
+                    Text(stringResource(id = android.R.string.ok))
+                }
+            }
+        }
+
     }
 }

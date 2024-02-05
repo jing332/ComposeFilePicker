@@ -59,7 +59,7 @@ fun FileNavBar(
     }
     val context = LocalContext.current
     LazyRow(modifier, state = state) {
-        itemsIndexed(list) { index, item ->
+        itemsIndexed(list, key = { _, item -> item.path }) { index, item ->
             Row(
                 modifier = Modifier.animateItemPlacement(),
                 verticalAlignment = Alignment.CenterVertically

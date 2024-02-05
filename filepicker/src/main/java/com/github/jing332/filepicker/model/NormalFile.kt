@@ -22,7 +22,18 @@ data class NormalFile(
         return file.listFiles()?.map { NormalFile(it) } ?: emptyList()
     }
 
-    override fun createDirectory(name: String) {
-        file.resolve(name ).mkdir()
+    override fun createDirectory(name: String): IFileModel {
+        val f = file.resolve(name)
+        f.mkdir()
+        return NormalFile(f)
     }
+
+    override fun createFile(name: String): IFileModel {
+        val f = file.resolve(name)
+        f.createNewFile()
+        return NormalFile(f)
+    }
+
+    override fun inputStream() = file.inputStream()
+    override fun outputStream() = file.outputStream()
 }

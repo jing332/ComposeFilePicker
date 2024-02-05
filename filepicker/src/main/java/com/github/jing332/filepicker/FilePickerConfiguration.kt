@@ -22,6 +22,7 @@ fun interface FileSelector {
     fun isCheckable(file: IFileModel): Boolean = true
 }
 
+
 data class FilePickerConfiguration(
     val fileDetector: FileDetector = FileDetector(),
     val fileFilter: FileFilter = FileFilter { true },
@@ -34,7 +35,8 @@ data class FilePickerConfiguration(
             return !file.isDirectory
         }
     },
-) {
+
+    ) {
     var viewType by mutableIntStateOf(ViewType.LIST)
     var sortConfig by mutableStateOf(SortConfig())
 }

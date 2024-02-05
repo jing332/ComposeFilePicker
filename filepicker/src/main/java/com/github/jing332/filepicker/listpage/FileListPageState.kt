@@ -57,7 +57,7 @@ class FileListPageState(
     internal val items = mutableStateListOf<FileItem>()
 
     internal fun models() = items.map { it.model }
-    internal fun findCheckedItems() = items.filter { it.isChecked.value }
+    internal fun findSelectedItems() = items.filter { it.isChecked.value }
 
     internal fun check(item: FileItem, checked: Boolean = true) {
         item.isChecked.value = checked
@@ -71,7 +71,7 @@ class FileListPageState(
             return false
         }
 
-        val list = config!!.fileSelector.select(findCheckedItems().map { it.model }, item.model)
+        val list = config!!.fileSelector.select(findSelectedItems().map { it.model }, item.model)
         for (i in items) {
             i.isChecked.value = list.find { it == i.model } != null
         }
