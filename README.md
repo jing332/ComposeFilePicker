@@ -5,7 +5,4 @@
 [![Crowdin](https://badges.crowdin.net/file-picker/localized.svg)](https://crowdin.com/project/file-picker)
 
 ## Preview
-<img src="./images/startup.jpg" height="150px"  alt="Startup"/>
-<img src="./images/search.jpg" height="150px" alt="Search"/>
-<img src="./images/grid.jpg" height="150px" alt="Grid"/>
-<img src="./images/menu.jpg" height="150px" alt="Menu"/>
+<img src="./images/startup.jpg" height="150px"  alt="Startup"> <img src="./images/search.jpg" height="150px" alt="Search"> <img src="./images/grid.jpg" height="150px" alt="Grid"> <img src="./images/menu.jpg" height="150px" alt="Menu">
